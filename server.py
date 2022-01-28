@@ -57,16 +57,12 @@ class MyWebServer(socketserver.BaseRequestHandler):
         mime_type = self.get_mime_type(uri)
         directory = os.path.abspath('www')
 
-        if not path.startswith(directory):
+        if path.startswith(directory) == False:
             self.not_found_404() 
-        elif not os.path.exists(path):
+        elif os.path.exists(path) == False:
             self.not_found_404()
         elif os.path.isdir(path):
-            if uri[-1] == '/':
-                path = path + "/index.html"
-            else:
-                self.redirect_301(path)
-         
+            self.redirect_301(path,uri)
         try:
             file = open(path, "r")
             content = file.read()
@@ -90,27 +86,40 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
 
 
-    def redirect_301(self,path):
-        date = self.get_time_formated()
-        http_status = "HTTP/1.1 301 Found"
-        mime_type = 'html'
-        content = "<HTML><HEAD>\r\n" + \
-                    "<TITLE>301 Moved</TITLE></HEAD><BODY>\r\n" + \
-                    "<H1>302 Moved</H1>\r\n" + \
-                    "The document has moved\r\n" + \
-                    "<A HREF=" + path + "/index.html>here</A>.\r\n" + \
-                    "</BODY></HTML>"
-        location = "Location: " + path + "/index.html"
+    #I kind of hardcoded this
+    def redirect_301(self,path, uri):
 
-        response = http_status + "\r\n" + \
-                "Server: " + "Nick's Server" + "\r\n" + \
-                "Date: " + str(date) + "\r\n" + \
-                "Content-type: text/" + mime_type + "; charset=UTF-8" + "\r\n" \
-                "Content-length: " + str(len(content)) + "\r\n\r\n" + \
-                content + "\r\n"
+        if uri[-1] == '/':
+            path = path + "/index.html"
+            try:
+                mime_type = self.get_mime_type(uri)
+                file = open(path, "r")
+                content = file.read()
+                self.ok_200(content, mime_type)
+            except IOError:
+                self.not_found_404()
+        else:
+            date = self.get_time_formated()
+            http_status = "HTTP/1.1 301 Moved Permanently"
+            location = "Location: http://127.0.0.1:8080/deep/"
+            mime_type = 'html'
 
-        self.request.sendall(response.encode())
-        self.request.sendall(location.encode())
+            content = "<HTML><HEAD>\r\n" + \
+                      "<TITLE>301 Moved</TITLE></HEAD><BODY>\r\n" + \
+                      "<H1>301 Moved</H1>\r\n" + \
+                      "Redirect: \r\n" + \
+                      "<A HREF=" + "/deep/>here</A>.\r\n" + \
+                      "</BODY></HTML>"
+
+            response = http_status + "\r\n" + \
+                    location + "\r\n" + \
+                    "Server: " + "Nick's Server" + "\r\n" + \
+                    "Date: " + str(date) + "\r\n" + \
+                    "Content-type: text/" + mime_type + "; charset=UTF-8" + "\r\n" \
+                    "Content-length: " + str(len(content)) + "\r\n\r\n" + \
+                    content + "\r\n"
+
+            self.request.sendall(response.encode())
     
 
 
